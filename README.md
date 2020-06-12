@@ -28,10 +28,15 @@
   1. 观察reveal.js的编辑方式，发现是通过`<section>`的数量来区分页面的，而页面的主次是通过“#”的数量。一个“#”开头是主页，两个是次页，三个是次页的子页面，超过三个就是正常的Markdown的标题的语法。
   使用正则表达式来定义好分页的规则：
 
+  定义判断主页面和子页面的函数
   ```js
   const isMain = str => (/^#{1,2}(?!#)/).test(str)
   const isSub = str => (/^#{3}(?!#)/).test(str)
+  ```
 
+  定义规则，如果是主页面添加reveal.js规定的`<section>`和`<textarea>`标签，如果有子页面多添加一层`<section>`包裹。
+
+  ```js
   function convert(raw) {
   let arr = raw.split(/\n(?=\s*#{1,3}[^=#])/).filter(s => s!='').map(s => s.trim())
   let html = ''
@@ -39,29 +44,29 @@
     if(arr[i+1] !== undefined){
       if(isMain(arr[i]) && isMain(arr[i+1])) {
        html += `
-<section data-markdown>
-  <textarea data-template>
-    ${arr[i]}
-  </textarea>
-</section>
-`
+  <section data-markdown>
+    <textarea data-template>
+      ${arr[i]}
+    </textarea>
+  </section>
+  `
       } else if(isMain(arr[i]) && isSub(arr[i+1])) {
    html += `
-<section>
-<section data-markdown>
-  <textarea data-template>
-    ${arr[i]}
-  </textarea>
-</section>
-`
+  <section>
+  <section data-markdown>
+    <textarea data-template>
+      ${arr[i]}
+    </textarea>
+  </section>
+  `
       }else if(isSub(arr[i]) && isSub(arr[i+1])) {
- html += `
-<section data-markdown>
-  <textarea data-template>
-    ${arr[i]}
-  </textarea>
-</section>
-`
+  html += `
+  <section data-markdown>
+    <textarea data-template>
+      ${arr[i]}
+    </textarea>
+  </section>
+  `
       }else if(isSub(arr[i]) && isMain(arr[i+1])){
      html += `<section data-markdown>
         <textarea data-template>
@@ -69,37 +74,38 @@
         </textarea>
       </section>
     </section>
-`
+  `
       }
   }else {
       if(isMain(arr[i])) {
           html += `
-<section data-markdown>
-  <textarea data-template>
-    ${arr[i]}
-  </textarea>
-</section>
-`
+  <section data-markdown>
+    <textarea data-template>
+      ${arr[i]}
+    </textarea>
+  </section>
+  `
       } else if(isSub(arr[i])) {
-html += `<section data-markdown>
+  html += `<section data-markdown>
         <textarea data-template>
           ${arr[i]}
         </textarea>
       </section>
     </section>
   `
+        }
       }
-    }
-  } 
+    } 
   return html
-}
+  }
   ```
   
 2. 设置内容输入框，将输入的内容通过上一步定义的规则进行判断，并转换成HTML插入到`[class="slide"]`的DOM内。
+
 ```js
-//Menue中方法
+//Menue中的方法
 //使用localStorage使得编辑的内容得以保存，当重新加载后可以保留上一次编辑的内容，方便修改
-   bind() {
+  bind() {
     this.$saveBtn.onclick = () => {
       localStorage.markdown = this.$editInput.value
       location.reload()
@@ -117,13 +123,15 @@ html += `<section data-markdown>
           hash: true,
           transition: localStorage.transition || 'slide', // none/fade/slide/convex/concave/zoom
           // More info https://github.com/hakimel/reveal.js#dependencies
-     .....
+          .....
         })
   }
+
 ```
 3. 编辑主题切换
 reveal.js设置文字的对齐方式由下面代码的`center`控制，值为`true`时居中，否则左上对齐；
 切页效果由`transition`取值决定；
+
 ```js
 Reveal.initialize({
           controls: true,
@@ -134,7 +142,9 @@ Reveal.initialize({
           ....
 )}
 ```
+
 因此为了让这两个属性的取值被用户在页面的选择取值决定，同样将用户选择的值保存在localStorage中，再通过localStorage调用。
+
 ```js
 //$transition和$align都是页面的DOM节点
   this.$transition.onchange = function() {
@@ -148,7 +158,9 @@ Reveal.initialize({
     }
 
 ```
+
 主题的变化是通过引入不同主题的CSS文件控制，因此可以在用户选择了主题后创建一个新的`<link>`标签插入到`head`中。
+
 ```js
 setTheme(theme) {
     localStorage.theme = theme
@@ -169,9 +181,11 @@ setTheme(theme) {
   }
 ```
 4. 设置打印模式
+
 > reveal.js提供的打印方法是在url中加上`?print-pdf#/`，因此可以在点击打印时创建一个`href`值符合的a链接，并在新页面打开。
 
 ```js
+
    bind() {
     this.$print.addEventListener('click', () =>{
       let $link = document.createElement('a')
