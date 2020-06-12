@@ -260,3 +260,6 @@ insertText(text = '') {
     $textarea.setSelectionRange(start, start + text.length) 
   }
 ```
+
+## 项目总结
+本项目基本实现了快速制作PPT的目标，用户只需要快速的学习Markdown的语法就可以使用本项目。对于复杂场景暂时还不能使用。
