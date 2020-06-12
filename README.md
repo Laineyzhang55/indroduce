@@ -198,3 +198,65 @@ setTheme(theme) {
   },
 
 ```
+
+5. 完善上传图片功能
+> 基于LeanCloud的存储功能完善PPT的图片功能。主要理念是监听[type=file]的改变，调用LeanCloud的接口上传图片，上传成功后在编辑框内展示Markdown的图片语法`![filename](url)`。
+
+初始化：选中上传按钮以及编辑框，绑定LeanCloud的应用
+
+```js
+init(){
+    this.$fileInput = $('#image-uploader')
+    this.$textarea = $('.editor textarea')
+
+    AV.init({
+      appId: "lrq81oYdxLjnI8EcPdR5QvPW-gzGzoHsz",
+      appKey: "Stl9ULTfyXhA6xTgnw03eFKl",
+      serverURL: "https://lrq81oyd.example.com"
+    })
+```
+
+文件上传逻辑：第一，必须是图片格式；第二，图片大小限制。
+
+```js
+let self = this
+  this.$fileInput.onchange=function(){
+    if(this.files.length > 0) {
+      let localFile = this.files[0]
+      if(localFile.size/1048576 > 2) {
+        alert('文件不能超过2M')
+        return
+      }
+      self.insertText(`![上传中，进度0%]()`)
+      let  avFile = new AV.File(encodeURI(localFile.name), localFile)
+      avFile.save({ 
+        keepFileName: true, 
+        onprogress(progress) {
+          self.insertText(`![上传中，进度${progress.percent}%]()`)
+        }
+      }).then(file => {
+        let text = `![${file.attributes.name}](${file.attributes.url}?imageView2/0/w/800/h/400)`
+        self.insertText(text)
+      }).catch(err => console.log(err))
+    } 
+  }
+```
+
+上列代码中的`insertText`是设置的编辑框内的展示逻辑：
+> 开始上传-上传结束：展示`![上传中，进度${progress.percent}%]()`；
+完成上传：展示`![${file.attributes.name}](${file.attributes.url}?imageView2/0/w/800/h/400)`
+
+使用到了`textarea`的API`selectionStart`、`selectionEnd`、`focus`以及字符串截图的API`substring`。
+
+```js
+insertText(text = '') {
+    let $textarea = this.$textarea
+    let start = $textarea.selectionStart
+    let end = $textarea.selectionEnd
+    let oldText = $textarea.value
+
+    $textarea.value = `${oldText.substring(0, start)}${text} ${oldText.substring(end)}`
+    $textarea.focus()
+    $textarea.setSelectionRange(start, start + text.length) 
+  }
+```
